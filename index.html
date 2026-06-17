@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="מנגל" />
+<meta name="theme-color" content="#0c0c0e" />
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27180%27%20height%3D%27180%27%3E%3Crect%20width%3D%27180%27%20height%3D%27180%27%20rx%3D%2740%27%20fill%3D%27%230c0c0e%27%2F%3E%3Cpath%20d%3D%27M96%2034%20C72%2072%20120%2080%2096%20124%20C88%20136%2074%20132%2072%20118%20C70%20106%2080%20100%2080%2092%20C66%20104%2060%20128%2076%20148%20C96%20168%20132%20158%20138%20128%20C144%20100%20116%2090%20114%2066%20C112%2050%20102%2044%2096%2034%20Z%27%20fill%3D%27%23e11d2a%27%2F%3E%3Cpath%20d%3D%27M98%2094%20C90%20108%20106%20112%2098%20128%20C114%20120%20112%20100%2098%2094%20Z%27%20fill%3D%27%23d8a838%27%2F%3E%3C%2Fsvg%3E" />
+<title>מנגל</title>
+<style>
+  :root{
+    --bg:#0c0c0e; --stage:#08080a; --surface:#1a1a1f; --surface2:#232329; --line:#33333c;
+    --ink:#f6f1ea; --muted:#9a9aa4; --red:#e11d2a; --red-dim:#b3151f; --gold:#d8a838; --gold-dim:#b98e2a;
+    --green:#35c759; --fire:linear-gradient(135deg,#e11d2a 0%,#f5831f 100%);
+    --gold-grad:linear-gradient(135deg,#f1cd6b,#c8881a);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI","Heebo","Assistant",Arial,sans-serif;
+    background:radial-gradient(1200px 600px at 50% -10%,#1a1216 0%,var(--stage) 60%);
+    color:var(--ink); height:100dvh; overflow:hidden; display:flex; flex-direction:column; align-items:center;
+  }
+  .demo-ribbon{display:none;position:fixed;top:10px;right:10px;z-index:60;background:rgba(216,168,56,.14);border:1px solid var(--gold-dim);
+    color:var(--gold);font-size:11px;font-weight:800;padding:4px 11px;border-radius:999px;letter-spacing:.3px}
+  body.demo .demo-ribbon{display:block}
+  /* phone frame */
+  .stage{flex:1;width:100%;display:flex;align-items:center;justify-content:center;padding:14px 10px;min-height:0}
+  .phone{position:relative;width:100%;max-width:412px;height:100%;max-height:880px;background:#000;border-radius:42px;
+    border:2px solid #2a2a30;box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 0 6px #131316;overflow:hidden;display:flex;flex-direction:column}
+  .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:128px;height:28px;background:#000;border-radius:0 0 18px 18px;z-index:40}
+  /* status bar — cleaner, real time, neat signal/wifi/battery */
+  .statusbar{height:44px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 26px 6px;font-size:13px;font-weight:700;color:var(--ink);flex:none;z-index:30}
+  .statusbar .si{display:flex;align-items:center;gap:7px}
+  .statusbar .bars{display:inline-flex;align-items:flex-end;gap:2px;height:11px}
+  .statusbar .bars i{width:3px;background:var(--ink);border-radius:1px}
+  .statusbar .bars i:nth-child(1){height:4px}.statusbar .bars i:nth-child(2){height:6px}
+  .statusbar .bars i:nth-child(3){height:8px}.statusbar .bars i:nth-child(4){height:11px}
+  .statusbar .net{font-size:12px;font-weight:800}
+  .statusbar .batt{position:relative;width:24px;height:12px;border:1.5px solid var(--ink);border-radius:3px;display:inline-block;opacity:.95}
+  .statusbar .batt::after{content:"";position:absolute;top:3px;right:-3px;width:2px;height:6px;background:var(--ink);border-radius:0 1px 1px 0}
+  .statusbar .batt i{position:absolute;inset:1.5px;width:70%;background:var(--green);border-radius:1px}
+  .statusbar .grid-ico{cursor:pointer;font-size:13px;opacity:.55;padding:2px 4px;letter-spacing:1px;line-height:1}
+  .statusbar .grid-ico:active{opacity:1}
+  .viewport{position:relative;flex:1;overflow:hidden;background:var(--bg)}
+  .screen{position:absolute;inset:0;overflow-y:auto;padding:6px 16px 18px;opacity:0;transform:translateX(-22px) scale(.99);
+    pointer-events:none;transition:opacity .32s ease,transform .32s ease}
+  .screen.active{opacity:1;transform:none;pointer-events:auto}
+  .screen.depth{transform:translateX(26px) scale(.99)}      /* push-in feel for detail screens */
+  .screen.depth.active{transform:none}
+  .screen::-webkit-scrollbar{width:0}
+  /* brand header */
+  .appbar{display:flex;align-items:center;justify-content:space-between;padding:8px 2px 14px;position:sticky;top:0;
+    background:linear-gradient(180deg,var(--bg) 70%,rgba(12,12,14,0));z-index:5}
+  .brand{font-size:21px;font-weight:900;letter-spacing:-.5px}
+  .brand b{color:var(--red)} .brand .fl{color:var(--gold)}
+  .appbar .side{font-size:18px;color:var(--muted)}
+  .backchip{font-size:15px;font-weight:800;color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+  .backchip:active{opacity:.6}
+  .ctx{font-size:11px;font-weight:800;color:var(--gold);background:rgba(216,168,56,.1);border:1px solid var(--gold-dim);
+    padding:3px 10px;border-radius:999px;display:inline-block;margin-bottom:12px}
+  .ctx.cust{color:#7fb8ff;background:rgba(80,140,255,.1);border-color:#2f5a9e}
+  h2.t{font-size:23px;font-weight:900;letter-spacing:-.4px;margin-bottom:4px;line-height:1.2}
+  p.sub{font-size:13.5px;color:var(--muted);margin-bottom:16px;line-height:1.5}
+  .soon{font-size:10px;font-weight:800;color:#0c0c0e;background:var(--gold-grad);padding:2px 8px;border-radius:999px;vertical-align:middle;margin-right:6px}
+  /* cards */
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:20px;overflow:hidden;margin-bottom:14px}
+  .photo{height:150px;background:linear-gradient(135deg,#3a1d1a,#1d0f0e);position:relative;display:flex;align-items:center;justify-content:center;
+    font-size:50px;background-size:cover;background-position:center}
+  .photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 40%,rgba(0,0,0,.55))}
+  .photo .ph-tag{position:absolute;top:10px;right:10px;z-index:2;font-size:11px;font-weight:800;padding:4px 10px;border-radius:999px}
+  .photo .slot{position:absolute;bottom:8px;left:10px;z-index:2;font-size:10px;color:#cdbfa0;background:rgba(0,0,0,.45);padding:2px 7px;border-radius:6px}
+  .deal{background:var(--fire);color:#fff}
+  .cert{background:var(--gold-grad);color:#0c0c0e}
+  .pad{padding:14px 15px}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .shopname{font-size:17px;font-weight:800}
+  .area{font-size:12px;color:var(--muted)}
+  .lead{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:800;color:var(--gold);
+    background:rgba(216,168,56,.1);border:1px solid var(--gold-dim);padding:4px 10px;border-radius:999px;margin-top:8px}
+  .price{font-size:20px;font-weight:900;color:var(--ink)} .price small{font-size:12px;color:var(--muted);font-weight:600}
+  .was{color:var(--muted);text-decoration:line-through;font-size:13px;font-weight:600}
+  .btn{display:block;width:100%;border:none;border-radius:14px;padding:14px;font-size:15.5px;font-weight:800;font-family:inherit;cursor:pointer;text-align:center}
+  .btn.fire{background:var(--fire);color:#fff;box-shadow:0 8px 22px rgba(225,29,42,.32)}
+  .btn.gold{background:var(--gold-grad);color:#0c0c0e}
+  .btn.ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink)}
+  .btn:active{transform:translateY(1px)}
+  .mini{font-size:13px;font-weight:800;padding:9px 14px;border-radius:11px;width:auto;display:inline-block}
+  .tap{cursor:pointer;transition:transform .12s} .tap:active{transform:scale(.985)}
+  .hint-tap{font-size:11px;color:var(--gold);text-align:center;margin:2px 0 6px;opacity:.85}
+  /* merchant order */
+  .order-head{background:var(--fire);border-radius:20px;padding:16px;color:#fff;margin-bottom:14px}
+  .order-head .lbl{font-size:12px;font-weight:800;opacity:.9}
+  .order-head .big{font-size:26px;font-weight:900;margin-top:2px}
+  .lineitem{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .lineitem:last-child{border-bottom:none}
+  .calc{background:var(--surface2);border-radius:16px;padding:14px;margin:14px 0}
+  .calc .ci{display:flex;justify-content:space-between;font-size:13.5px;padding:5px 0;color:var(--muted)}
+  .calc .ci.fee{color:#e9a0a6}
+  .calc .net{display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:12px;border-top:1px dashed var(--line)}
+  .calc .net .l{font-size:14px;font-weight:800}
+  .calc .net .v{font-size:26px;font-weight:900;color:var(--green)}
+  .feenote{font-size:11px;color:var(--muted);text-align:center;margin-top:6px}
+  .twobtn{display:flex;gap:10px}
+  .twobtn .btn{flex:1}
+  /* earnings */
+  .stat{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;text-align:center}
+  .stat .v{font-size:28px;font-weight:900;color:var(--gold)} .stat .l{font-size:12px;color:var(--muted);margin-top:2px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+  /* gallery */
+  .gal{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .gtile{border-radius:16px;height:130px;background:linear-gradient(135deg,#3a1d1a,#1d0f0e);position:relative;display:flex;align-items:center;justify-content:center;font-size:38px;overflow:hidden}
+  .gtile span{position:absolute;bottom:8px;right:10px;font-size:11px;font-weight:800;background:rgba(0,0,0,.5);padding:2px 8px;border-radius:6px}
+  /* planner */
+  .field{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:13px 15px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+  .field .k{font-size:13px;color:var(--muted)} .field .vv{font-size:16px;font-weight:800}
+  /* checkout */
+  .stepbar{display:flex;gap:6px;margin-bottom:16px}
+  .stepbar i{flex:1;height:4px;border-radius:3px;background:var(--line)} .stepbar i.on{background:var(--fire)}
+  /* confirm */
+  .check{width:84px;height:84px;border-radius:50%;background:var(--fire);display:flex;align-items:center;justify-content:center;
+    font-size:44px;margin:18px auto 14px;box-shadow:0 12px 30px rgba(225,29,42,.4)}
+  .pts{background:var(--gold-grad);color:#0c0c0e;border-radius:18px;padding:15px;text-align:center;margin:16px 0}
+  .pts .v{font-size:24px;font-weight:900} .pts .l{font-size:12.5px;font-weight:700}
+  .trust{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:13px 15px;font-size:13px;color:var(--ink);line-height:1.6;text-align:center}
+  /* splash + close */
+  .full{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:34px;
+    background:radial-gradient(700px 400px at 50% 20%,#2a1418,var(--bg))}
+  .full .logo{font-size:46px;font-weight:900;letter-spacing:-1px;margin-bottom:8px}
+  .full .logo b{color:var(--red)} .full .logo .fl{color:var(--gold)}
+  .full .tag{font-size:17px;color:var(--gold);font-weight:700;margin-bottom:6px}
+  .full .sub2{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:28px;max-width:300px}
+  .ember{font-size:54px;margin-bottom:14px;filter:drop-shadow(0 0 18px rgba(245,131,31,.5))}
+
+  /* ===== BOTTOM TAB BAR (native app chrome) ===== */
+  .tabbar{flex:none;display:flex;align-items:stretch;background:rgba(18,18,22,.96);border-top:1px solid var(--line);
+    backdrop-filter:blur(12px);padding:6px 4px calc(8px + env(safe-area-inset-bottom)) 4px;z-index:35}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+    background:none;border:none;font-family:inherit;cursor:pointer;color:var(--muted);padding:5px 2px;border-radius:12px}
+  .tab .ti{font-size:21px;line-height:1}
+  .tab .tl{font-size:10.5px;font-weight:800}
+  .tab.on{color:var(--ink)}
+  .tab.on .ti{filter:drop-shadow(0 0 8px rgba(225,29,42,.45))}
+  .tab.on .tl{color:var(--red)}
+  body.merchant .tab.on .tl{color:var(--gold)}
+  body.merchant .tab.on .ti{filter:drop-shadow(0 0 8px rgba(216,168,56,.5))}
+  .tab:active{transform:scale(.93)}
+  body.fullscreen .tabbar{display:none}   /* פתיחה/סגירה = מסך מלא נקי */
+  .tabs-merchant{display:none}
+  body.merchant .tabs-consumer{display:none}
+  body.merchant .tabs-merchant{display:flex;flex:1}
+
+  /* ===== DIRECTOR DRAWER — "כל המסכים" (jump to any of 12) ===== */
+  .drawer{position:absolute;inset:0;z-index:80;background:rgba(8,8,10,.93);backdrop-filter:blur(10px);
+    display:none;flex-direction:column;padding:22px 18px}
+  .drawer.open{display:flex}
+  .drawer h3{font-size:16px;font-weight:900;margin-bottom:3px;display:flex;align-items:center;justify-content:space-between}
+  .drawer h3 .x{font-size:22px;color:var(--muted);cursor:pointer;line-height:1}
+  .drawer .hd-sub{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+  .scgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;overflow-y:auto;padding-bottom:10px}
+  .scgrid::-webkit-scrollbar{width:0}
+  .sctile{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 12px;text-align:right;cursor:pointer;
+    display:flex;align-items:center;gap:9px;transition:transform .1s,border-color .15s}
+  .sctile:active{transform:scale(.96);border-color:var(--gold-dim)}
+  .sctile .nn{font-size:12px;font-weight:900;color:#0c0c0e;background:var(--gold-grad);width:24px;height:24px;border-radius:7px;
+    display:flex;align-items:center;justify-content:center;flex:none}
+  .sctile.mch .nn{background:var(--gold-grad)} .sctile.cst .nn{background:linear-gradient(135deg,#7fb8ff,#3a6fc4);color:#04101f}
+  .sctile .lab{font-size:12.5px;font-weight:700;line-height:1.25}
+
+  /* nav helper (hidden — only ?demo=1) */
+  .nav{display:none}
+  body.demo .nav{flex:none;width:100%;max-width:412px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 6px 14px}
+  .navbtn{border:none;border-radius:13px;padding:10px 16px;font-size:13px;font-weight:800;font-family:inherit;cursor:pointer;
+    background:var(--surface2);color:var(--ink);border:1px solid var(--line);min-width:84px}
+  .navbtn.main{background:var(--fire);color:#fff;border:none}
+  .navbtn:disabled{opacity:.3;pointer-events:none}
+  .navc{display:flex;flex-direction:column;align-items:center;gap:6px}
+  .navc .ct{font-size:12px;font-weight:800;color:var(--muted)}
+  .stagelabel{font-size:11px;color:var(--muted);text-align:center;padding:0 0 2px;display:none}
+  body.demo .stagelabel{display:block}
+</style>
+</head>
+<body>
+<div class="demo-ribbon">דמו — כך זה ייראה</div>
+
+<div class="stage">
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="statusbar">
+      <span class="si" id="clock">9:41</span>
+      <span class="grid-ico" id="dirBtn" title="כל המסכים">▦</span>
+      <span class="si"><span class="net">5G</span><span class="bars"><i></i><i></i><i></i><i></i></span><span class="batt"><i></i></span></span>
+    </div>
+
+    <div class="viewport" id="vp">
+
+      <!-- 0 · SPLASH -->
+      <section class="screen" data-label="פתיחה" data-side="cust">
+        <div class="full">
+          <div class="ember">🔥</div>
+          <div class="logo"><b>מַנְגַּל</b></div>
+          <div class="tag">העולם החדש של הבשר</div>
+          <div class="sub2">בשר איכותי, מהקצבים הכי טובים — מעכשיו לעכשיו, בקליק. רואים לפני שקונים.</div>
+          <button class="btn fire tap" style="max-width:240px" onclick="go(2)">בוא נתחיל →</button>
+        </div>
+      </section>
+
+      <!-- 1 · BUTCHER PROFILE (his view) -->
+      <section class="screen" data-label="הקצב · הדף שלך" data-side="mch">
+        <div class="appbar"><div class="brand"><b>מַנְגַּל</b> <span class="fl">🔥</span></div><div class="side">⚙️</div></div>
+        <span class="ctx">זה בשבילך, הקצב</span>
+        <h2 class="t">הדף שלך באפליקציה</h2>
+        <p class="sub">ככה הלקוחות רואים את העסק שלך — אתה קובע מה מופיע פה.</p>
+        <div class="card">
+          <div class="photo" id="shopHero" style="height:170px"><span style="z-index:2">🥩</span>
+            <span class="ph-tag cert">⭐ מוביל באזור</span>
+            <span class="slot">📷 כאן תיכנס תמונת חזית החנות שלך</span>
+          </div>
+          <div class="pad">
+            <div class="row"><div class="shopname" id="shopName">הקצבייה של דני</div><div class="lead" style="margin-top:0">🏅 מוביל באזור</div></div>
+            <div class="area" id="shopArea">רמת גן · דריי-אייג׳ · משלוח עד הבית</div>
+            <div class="lead">🏅 מוסמך ע׳ שופט-בשר מומחה</div>
+          </div>
+        </div>
+        <div class="card pad">
+          <div class="row" style="margin-bottom:10px"><b style="font-size:15px">הנתחים שלך</b><span class="mini btn ghost" style="padding:6px 12px">+ הוסף נתח / תמונה</span></div>
+          <div class="lineitem"><span>אנטריקוט מיושן 🥩</span><span class="price"><small>₪/ק״ג</small> 189</span></div>
+          <div class="lineitem"><span>פילה בקר 🍖</span><span class="price"><small>₪/ק״ג</small> 320</span></div>
+          <div class="lineitem"><span>אסאדו לחיתוך 🔥</span><span class="price"><small>₪/ק״ג</small> 95</span></div>
+        </div>
+      </section>
+
+      <!-- 2 · INCOMING ORDER (merchant hero) -->
+      <section class="screen" data-label="הקצב · הזמנה + רווח" data-side="mch">
+        <div class="appbar"><div class="brand"><b>מַנְגַּל</b> <span class="fl">🔥</span></div><div class="side">🔔</div></div>
+        <span class="ctx">הזמנה חדשה אצלך 🎉</span>
+        <h2 class="t">הזמנה נכנסה — והנה כמה נכנס לכיס</h2>
+        <div class="order-head">
+          <div class="lbl">הזמנה #1042 · יוסי כ. · לאיסוף 18:30</div>
+          <div class="big">סה״כ הזמנה ₪700</div>
+        </div>
+        <div class="card pad" style="margin-bottom:14px">
+          <div class="lineitem"><span>אנטריקוט מיושן · 2 ק״ג</span><span>₪378</span></div>
+          <div class="lineitem"><span>אסאדו · 2.5 ק״ג</span><span>₪238</span></div>
+          <div class="lineitem"><span>נקניקיות מרגז · 1 ק״ג</span><span>₪84</span></div>
+        </div>
+        <div class="calc">
+          <div class="ci"><span>סכום ההזמנה</span><span>₪700</span></div>
+          <div class="ci fee"><span>עמלת מנגל (8–10%)*</span><span>−₪63</span></div>
+          <div class="net"><span class="l">נכנס לכיס שלך</span><span class="v">₪637</span></div>
+        </div>
+        <div class="feenote">* טווח עמלה להיכרות — לא סופי. תמיד גלוי, אף פעם לא מוסתר.</div>
+        <div class="twobtn" style="margin-top:16px">
+          <button class="btn ghost tap" onclick="declineOrder(this)">דחה</button>
+          <button class="btn fire tap" id="acceptBtn" onclick="acceptOrder()">אשר הזמנה ✓</button>
+        </div>
+        <p class="hint-tap" id="afterAccept" style="display:none" onclick="go(3)">👆 מצוין. עכשיו — הרווחים שלך. הקש</p>
+      </section>
+
+      <!-- 3 · EARNINGS / WALLET -->
+      <section class="screen" data-label="הקצב · הארנק שלך" data-side="mch">
+        <div class="appbar"><div class="brand"><b>מַנְגַּל</b> <span class="fl">🔥</span></div><div class="side">📊</div></div>
+        <span class="ctx">הארנק שלך</span>
+        <h2 class="t">הכסף, במקום אחד</h2>
+        <p class="sub">כל הזמנה, כל תשלום — שקוף ומסודר.</p>
+        <div class="grid2">
+          <div class="stat"><div class="v">₪14,250</div><div class="l">החודש</div></div>
+          <div class="stat"><div class="v">38</div><div class="l">הזמנות החודש</div></div>
+        </div>
+        <div class="card pad">
+          <b style="font-size:14px">הזמנות אחרונות</b>
+          <div class="lineitem"><span>#1042 · יוסי כ.</span><span style="color:var(--green);font-weight:800">+₪637</span></div>
+          <div class="lineitem"><span>#1041 · מאיה ל.</span><span style="color:var(--green);font-weight:800">+₪410</span></div>
+          <div class="lineitem"><span>#1039 · אירוע · רוני</span><span style="color:var(--green);font-weight:800">+₪1,180</span></div>
+        </div>
+        <button class="btn gold tap" onclick="toConsumer()">תראה איך הלקוחות רואים את זה →</button>
+      </section>
+
+      <!-- 4 · CONSUMER HOME (WOW) -->
+      <section class="screen" data-label="לקוח · בית" data-side="cust">
+        <div class="appbar"><div class="brand"><b>מַנְגַּל</b> <span class="fl">🔥</span></div><div class="side">📍 ת״א</div></div>
+        <span class="ctx cust">בשר טוב, לידך</span>
+        <h2 class="t">בשר טוב, עכשיו, לידך</h2>
+        <p class="sub">קצבים מובילים באזור — רואים את הבשר מהבוקר, מזמינים בקליק.</p>
+
+        <div class="card tap" onclick="push(5)">
+          <div class="photo"><span style="z-index:2">🥩🔥</span>
+            <span class="ph-tag deal">מבצע הקצב · 2 ק״ג ב-₪500</span>
+            <span class="slot">📷 תמונת בשר מהבוקר</span>
+          </div>
+          <div class="pad">
+            <div class="row"><div class="shopname" id="cardName">הקצבייה של דני</div><span class="lead" style="margin-top:0">🏅 מוביל באזור</span></div>
+            <div class="row" style="margin-top:6px">
+              <span class="area">דריי-אייג׳ · נחתך הבוקר</span>
+              <span class="price"><span class="was">₪600</span> ₪500</span>
+            </div>
+            <button class="btn fire tap" style="margin-top:12px" onclick="event.stopPropagation();push(7)">הזמן בקליק →</button>
+          </div>
+        </div>
+
+        <div class="card tap" onclick="push(5)">
+          <div class="photo" style="background:linear-gradient(135deg,#2a2118,#14110c)"><span style="z-index:2">🍖</span>
+            <span class="ph-tag cert">⭐ מאומת</span>
+            <span class="slot">📷 תמונת בשר מהבוקר</span>
+          </div>
+          <div class="pad">
+            <div class="row"><div class="shopname">בית הבשר · מרינדו</div><span class="lead" style="margin-top:0">🏅 מוסמך</span></div>
+            <div class="row" style="margin-top:6px"><span class="area">דריי-אייג׳ 45 יום</span><span class="price"><small>אנטריקוט ₪/ק״ג</small> 210</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 5 · BUTCHER PROFILE (customer view) -->
+      <section class="screen depth" data-label="לקוח · פרופיל קצב" data-side="cust">
+        <div class="appbar"><div class="backchip" onclick="back()">← חזרה</div><div class="side">♡</div></div>
+        <div class="card">
+          <div class="photo" style="height:160px"><span style="z-index:2">🏪</span>
+            <span class="ph-tag cert">🏅 מוביל באזור</span>
+            <span class="slot">📷 חזית החנות</span>
+          </div>
+          <div class="pad">
+            <div class="row"><div class="shopname" data-cfg="shop">הקצבייה של דני</div><span class="lead" style="margin-top:0">🏅 מוביל באזור</span></div>
+            <div class="area" data-cfg="area">רמת גן · דריי-אייג׳ · משלוח עד הבית</div>
+            <div class="lead">🏅 מוסמך ע׳ שופט-בשר מומחה — איכות · עקביות · שירות</div>
+          </div>
+        </div>
+        <b style="font-size:14px;display:block;margin:4px 2px 10px">הנתחים של היום 🔥</b>
+        <div class="card tap" onclick="push(7)">
+          <div class="pad row">
+            <div><div class="shopname" style="font-size:15px">אנטריקוט מיושן</div><div class="area">42 יום · נחתך היום</div></div>
+            <div class="price"><small>₪/ק״ג</small> 189</div>
+          </div>
+        </div>
+        <div class="card tap" onclick="push(6)">
+          <div class="pad row">
+            <div><div class="shopname" style="font-size:15px">אסאדו לחיתוך</div><div class="area">טרי · לאירוע</div></div>
+            <div class="price"><small>₪/ק״ג</small> 95</div>
+          </div>
+        </div>
+        <button class="btn ghost tap" onclick="push(6)">📸 ראה את הבשר — לפני/אחרי קיצוב</button>
+      </section>
+
+      <!-- 6 · SEE-THE-CUT GALLERY -->
+      <section class="screen depth" data-label="לקוח · ראה את הנתח" data-side="cust">
+        <div class="appbar"><div class="backchip" onclick="back()">← חזרה</div><div class="side">📸</div></div>
+        <span class="ctx cust">רואים לפני שקונים</span>
+        <h2 class="t">הבשר האמיתי — לא תמונת סטוק</h2>
+        <p class="sub">בדיוק הנתח שתקבל. לפני ואחרי הקיצוב של הקצב.</p>
+        <div class="gal">
+          <div class="gtile">🥩<span>לפני קיצוב</span></div>
+          <div class="gtile" style="background:linear-gradient(135deg,#4a241f,#23110e)">🔪<span>אחרי קיצוב</span></div>
+          <div class="gtile" style="background:linear-gradient(135deg,#2a2118,#14110c)">🍖<span>שימון / שיש</span></div>
+          <div class="gtile" style="background:linear-gradient(135deg,#3a1d1a,#1d0f0e)">🔥<span>מוכן לאש</span></div>
+        </div>
+        <div class="card pad" style="margin-top:14px;text-align:center">
+          <span class="soon">כיוון עתידי</span> <span style="font-size:13px;color:var(--muted)">וידאו חי של פתיחת נתח אצל הקצב</span>
+        </div>
+        <button class="btn fire tap" style="margin-top:14px" onclick="push(7)">אהבתי — להזמנה →</button>
+      </section>
+
+      <!-- 7 · CUT PAGE -->
+      <section class="screen depth" data-label="לקוח · עמוד נתח" data-side="cust">
+        <div class="appbar"><div class="backchip" onclick="back()">← חזרה</div><div class="side">♡</div></div>
+        <div class="card">
+          <div class="photo" style="height:180px"><span style="z-index:2">🥩</span><span class="slot">📷 תמונת הנתח מהבוקר</span></div>
+          <div class="pad">
+            <div class="shopname" style="font-size:19px">אנטריקוט מיושן 42 יום</div>
+            <div class="area"><span data-cfg="shop">הקצבייה של דני</span> · נחתך היום · מתאים ל-3–4 סועדים</div>
+            <div class="row" style="margin-top:12px">
+              <div class="price" style="font-size:24px"><small>לק״ג</small> ₪189</div>
+              <div class="lead">🏅 מוביל באזור</div>
+            </div>
+          </div>
+        </div>
+        <div class="field"><span class="k">משקל</span><span class="vv">1.5 ק״ג ▾</span></div>
+        <div class="field"><span class="k">קיצוב</span><span class="vv">סטייקים 3 ס״מ ▾</span></div>
+        <button class="btn fire tap" onclick="push(9)">הוסף לסל · ₪284 →</button>
+      </section>
+
+      <!-- 8 · PLANNER (future) -->
+      <section class="screen" data-label="לקוח · מתכנן (כיוון)" data-side="cust">
+        <div class="appbar"><div class="brand"><b>מַנְגַּל</b> <span class="fl">🔥</span></div><div class="side">🧮</div></div>
+        <span class="ctx cust"><span class="soon">כיוון עתידי</span> מתכנן המנגל</span>
+        <h2 class="t">אירוע על האש? נתכנן לך הכל</h2>
+        <p class="sub">כמה אנשים ותקציב — ואנחנו בונים רשימה ושולחים לקצב מוביל.</p>
+        <div class="field"><span class="k">כמה אנשים</span><span class="vv">12 👥</span></div>
+        <div class="field"><span class="k">תקציב</span><span class="vv">₪900</span></div>
+        <div class="field"><span class="k">סגנון</span><span class="vv">קלאסי על האש ▾</span></div>
+        <div class="card pad" style="margin-top:6px">
+          <b style="font-size:14px">הרשימה שלך 🔥</b>
+          <div class="lineitem"><span>אנטריקוט · 2.5 ק״ג</span><span>₪472</span></div>
+          <div class="lineitem"><span>כנפיים · 2 ק״ג</span><span>₪96</span></div>
+          <div class="lineitem"><span>מרגז + פרגיות · 3 ק״ג</span><span>₪288</span></div>
+          <div class="net" style="display:flex;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)">
+            <b>סה״כ</b><b style="color:var(--gold)">₪856</b></div>
+        </div>
+        <button class="btn fire tap" onclick="push(9)">שלח את הרשימה לקצב →</button>
+      </section>
+
+      <!-- 9 · CHECKOUT -->
+      <section class="screen depth" data-label="לקוח · הזמנה ותשלום" data-side="cust">
+        <div class="appbar"><div class="backchip" onclick="back()">← חזרה</div><div class="side">🛒</div></div>
+        <div class="stepbar"><i class="on"></i><i class="on"></i><i></i></div>
+        <span class="ctx cust">סל · תשלום · אישור</span>
+        <h2 class="t">כמעט שם</h2>
+        <div class="card pad">
+          <div class="lineitem"><span>אנטריקוט מיושן · 1.5 ק״ג</span><span>₪284</span></div>
+          <div class="lineitem"><span>אסאדו · 2 ק״ג</span><span>₪190</span></div>
+          <div class="net" style="display:flex;justify-content:space-between;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)">
+            <b>סה״כ לתשלום</b><b style="font-size:20px">₪474</b></div>
+        </div>
+        <div class="field"><span class="k">איסוף / משלוח</span><span class="vv">משלוח עד הבית ▾</span></div>
+        <div class="field"><span class="k">תשלום</span><span class="vv">💳 ···· 4242 ▾</span></div>
+        <button class="btn fire tap" onclick="push(10)">שלם ₪474 ✓</button>
+      </section>
+
+      <!-- 10 · CONFIRM + POINTS -->
+      <section class="screen depth" data-label="לקוח · אישור + נקודות" data-side="cust">
+        <div class="appbar"><div class="brand"><b>מַנְגַּל</b> <span class="fl">🔥</span></div><div class="side"></div></div>
+        <div class="check">✓</div>
+        <h2 class="t" style="text-align:center">ההזמנה נשלחה <span data-cfg="to">לדני</span> 🎉</h2>
+        <p class="sub" style="text-align:center">הקצב יאשר ויכין. תקבל עדכון כשמוכן.</p>
+        <div class="pts">
+          <div class="v"><span class="soon" style="background:#0c0c0e;color:var(--gold)">כיוון עתידי</span> +47 נקודות 🪙</div>
+          <div class="l">ארנק מנגל · חוסך לך בהזמנה הבאה</div>
+        </div>
+        <div class="trust">🤝 <b>מה שראית — זה מה שתקבל.</b><br/>הנתח שצולם בבוקר הוא הנתח שמגיע אליך. זה האמון שמחזיר לקוחות.</div>
+        <button class="btn gold tap" style="margin-top:18px" onclick="go(11)">←  סיום</button>
+      </section>
+
+      <!-- 11 · CLOSE -->
+      <section class="screen" data-label="סגירה" data-side="cust">
+        <div class="full">
+          <div class="ember">🔥</div>
+          <div class="logo"><b>מַנְגַּל</b></div>
+          <div class="tag" style="font-size:20px;margin-bottom:14px">מתחילים את העולם החדש של הבשר</div>
+          <div class="sub2">אתה בין הקצבים הראשונים. חינם להצטרף — משלם רק כשאני מביא לך מכירה.</div>
+          <button class="btn fire tap" style="max-width:260px" onclick="toMerchant()">▷ חזרה לצד שלך, הקצב</button>
+        </div>
+      </section>
+
+      <!-- DIRECTOR DRAWER -->
+      <div class="drawer" id="drawer">
+        <h3>כל המסכים <span class="x" id="drawerX">✕</span></h3>
+        <div class="hd-sub">קפיצה מיידית לכל מסך — בחר אריח</div>
+        <div class="scgrid" id="scgrid"></div>
+      </div>
+
+    </div><!-- /viewport -->
+
+    <!-- BOTTOM TAB BAR -->
+    <nav class="tabbar" id="tabbar">
+      <div class="tabs-consumer" style="display:flex;flex:1">
+        <button class="tab" data-tab="home" onclick="goTab('home')"><span class="ti">🏠</span><span class="tl">בית</span></button>
+        <button class="tab" data-tab="butchers" onclick="goTab('butchers')"><span class="ti">🥩</span><span class="tl">קצבים</span></button>
+        <button class="tab" data-tab="event" onclick="goTab('event')"><span class="ti">🔥</span><span class="tl">אירוע</span></button>
+        <button class="tab" data-tab="cart" onclick="goTab('cart')"><span class="ti">🛒</span><span class="tl">סל</span></button>
+        <button class="tab" data-tab="iam" onclick="toMerchant()"><span class="ti">👨‍🍳</span><span class="tl">אני קצב</span></button>
+      </div>
+      <div class="tabs-merchant">
+        <button class="tab" data-tab="orders" onclick="goTab('orders')"><span class="ti">📥</span><span class="tl">ההזמנות</span></button>
+        <button class="tab" data-tab="mypage" onclick="goTab('mypage')"><span class="ti">📄</span><span class="tl">הדף שלי</span></button>
+        <button class="tab" data-tab="wallet" onclick="goTab('wallet')"><span class="ti">💰</span><span class="tl">הארנק</span></button>
+        <button class="tab" data-tab="cust" onclick="toConsumer()"><span class="ti">👀</span><span class="tl">מצב לקוח</span></button>
+      </div>
+    </nav>
+
+  </div>
+</div>
+
+<!-- helper chrome (only ?demo=1) -->
+<div class="stagelabel" id="stageLabel"></div>
+<div class="nav">
+  <button class="navbtn" id="prev" onclick="go(cur-1)">→ הקודם</button>
+  <div class="navc"><span class="ct" id="ct">1 / 12</span></div>
+  <button class="navbtn main" id="next" onclick="go(cur+1)">הבא ←</button>
+</div>
+
+<script>
+/* ===== CONFIG — קל להחליף פרטים לכל קצב לפני פגישה =====
+   שנה כאן את שם החנות והאזור, והם יתעדכנו אוטומטית בכל המסכים.
+   startMode: 'merchant' פותח על צד-הקצב (מסך הרווח). אפשר גם ?role=butcher / ?role=customer בכתובת.
+   להוספת תמונות אמיתיות: הכנס URL ל-PHOTOS למטה (לא חובה — בלי, יופיע רקע יוקרתי). */
+const CFG = {
+  shopName: 'הקצבייה של דני',
+  shopShort: 'דני',                 // לשורת האישור: "נשלחה לדני"
+  area: 'רמת גן · דריי-אייג׳ · משלוח עד הבית',
+  startMode: 'merchant',            // 'merchant' | 'consumer'
+  cuts: [                           // נתחי הקצב — קל להחליף לפני פגישה
+    { name:'אנטריקוט מיושן', meta:'42 יום · נחתך היום', ppk:189 },
+    { name:'פילה בקר',       meta:'טרי',               ppk:320 },
+    { name:'אסאדו לחיתוך',   meta:'טרי · לאירוע',       ppk:95  },
+  ],
+  // PHOTOS: { hero:'url...' }       // אופציונלי — תמונות בוקר אמיתיות מהקצב
+};
+
+(function applyCfg(){
+  /* שם החנות — לכל מקום שמסומן data-cfg="shop" + ה-IDs הקיימים */
+  document.querySelectorAll('[data-cfg="shop"]').forEach(e=>e.textContent=CFG.shopName);
+  ['shopName','cardName'].forEach(id=>{const e=document.getElementById(id); if(e) e.textContent=CFG.shopName;});
+  /* שם קצר במסך-האישור: "נשלחה ל<דני>" */
+  const short = CFG.shopShort || (CFG.shopName.split(' של ')[1] || CFG.shopName);
+  document.querySelectorAll('[data-cfg="to"]').forEach(e=>e.textContent='ל'+short);
+  /* אזור */
+  const sa=document.getElementById('shopArea'); if(sa) sa.textContent=CFG.area;
+  document.querySelectorAll('[data-cfg="area"]').forEach(e=>e.textContent=CFG.area);
+})();
+
+/* ===== NAV ENGINE — go(n) הוא הליבה. כל ניווט עובר דרכו ===== */
+const screens=[...document.querySelectorAll('.screen')];
+const N=screens.length;
+let cur=0, mode='consumer';
+const isDemo = location.search.includes('demo=1');
+if(isDemo) document.body.classList.add('demo');
+
+/* מיפוי טאב → מסך-שורש */
+const TAB_SCREEN = { home:4, butchers:5, event:8, cart:9, orders:2, mypage:1, wallet:3 };
+/* באיזה מצב חי כל מסך (לסנכרון הטאב-בר + הקשר) */
+const SCREEN_SIDE = i => screens[i].dataset.side; // 'mch' | 'cust'
+
+let navStack=[];
+
+/* go — ליבת-המנוע. n = מסך. opts.push דוחף למחסנית; opts.root מאפס מחסנית */
+function go(n, opts={}){
+  const t=Math.max(0,Math.min(N-1,n));
+  if(opts.push && t!==cur) navStack.push(cur);
+  if(opts.root) navStack=[];
+  cur=t;
+  screens.forEach((s,i)=>s.classList.toggle('active',i===cur));
+  screens[cur].scrollTop=0;
+  syncMode(); syncTabs();
+  document.body.classList.toggle('fullscreen', cur===0 || cur===N-1);
+  if(isDemo){
+    document.getElementById('ct').textContent=`${cur+1} / ${N}`;
+    document.getElementById('prev').disabled=cur===0;
+    document.getElementById('next').textContent=cur===N-1?'סיום':'הבא ←';
+    document.getElementById('stageLabel').textContent=screens[cur].dataset.label||'';
+  }
+}
+/* push — כניסה למסך-עומק (כרטיס/כפתור), שומר Back אמיתי */
+function push(n){ go(n,{push:true}); }
+/* back — מחסנית אמיתית. ריקה = no-op (לא יוצאים מהאפליקציה) */
+function back(){ if(navStack.length){ go(navStack.pop()); } }
+
+/* ===== MODE — מתג הקצב/לקוח ===== */
+function toMerchant(){ mode='merchant'; go(TAB_SCREEN.orders,{root:true}); }
+function toConsumer(){ mode='consumer'; go(TAB_SCREEN.home,{root:true}); }
+function syncMode(){
+  /* המסך הנוכחי קובע את המצב הויזואלי של הטאב-בר */
+  const side = SCREEN_SIDE(cur);
+  if(side==='mch') mode='merchant'; else if(side==='cust') mode='consumer';
+  document.body.classList.toggle('merchant', mode==='merchant');
+}
+
+/* ===== TABS ===== */
+function goTab(tab){
+  const n=TAB_SCREEN[tab]; if(n===undefined) return;
+  if(tab==='orders'||tab==='mypage'||tab==='wallet') mode='merchant';
+  else mode='consumer';
+  go(n,{root:true});
+}
+function syncTabs(){
+  /* הדגש את הטאב המתאים למסך-השורש הנוכחי (אם זה מסך-שורש) */
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  const entry=Object.entries(TAB_SCREEN).find(([_,n])=>n===cur);
+  if(entry){ const el=document.querySelector(`.tab[data-tab="${entry[0]}"]`); if(el) el.classList.add('on'); }
+}
+
+/* ===== DIRECTOR DRAWER — כל 12 המסכים ===== */
+const drawer=document.getElementById('drawer'), scgrid=document.getElementById('scgrid');
+screens.forEach((s,i)=>{
+  const tile=document.createElement('div');
+  tile.className='sctile '+(s.dataset.side==='mch'?'mch':'cst');
+  tile.innerHTML=`<span class="nn">${i}</span><span class="lab">${s.dataset.label}</span>`;
+  tile.onclick=()=>{ closeDrawer(); go(i,{root:true}); };
+  scgrid.appendChild(tile);
+});
+function openDrawer(){ drawer.classList.add('open'); }
+function closeDrawer(){ drawer.classList.remove('open'); }
+document.getElementById('dirBtn').onclick=openDrawer;
+document.getElementById('drawerX').onclick=closeDrawer;
+/* long-press על ה-notch גם פותח את המגירה (גיבוי דיסקרטי) */
+let lpT;
+const notch=document.querySelector('.notch');
+notch.addEventListener('touchstart',()=>{lpT=setTimeout(openDrawer,550);},{passive:true});
+notch.addEventListener('touchend',()=>clearTimeout(lpT),{passive:true});
+notch.addEventListener('mousedown',()=>{lpT=setTimeout(openDrawer,550);});
+notch.addEventListener('mouseup',()=>clearTimeout(lpT));
+
+/* ===== merchant order actions ===== */
+function acceptOrder(){
+  const b=document.getElementById('acceptBtn'); b.textContent='אושר ✓ — מתחיל להכין'; b.style.background='var(--green)';
+  document.getElementById('afterAccept').style.display='block';
+}
+function declineOrder(b){ b.textContent='נדחה'; }
+
+/* ===== live status-bar clock ===== */
+(function tick(){
+  const c=document.getElementById('clock');
+  function upd(){ const d=new Date(); c.textContent=d.getHours()+':'+String(d.getMinutes()).padStart(2,'0'); }
+  upd(); setInterval(upd,15000);
+})();
+
+/* ===== hidden helper — prev/next + keyboard + swipe — only ?demo=1 ===== */
+if(isDemo){
+  document.addEventListener('keydown',e=>{
+    if(e.key==='ArrowLeft'||e.key===' '){e.preventDefault();go(cur+1);}
+    else if(e.key==='ArrowRight'){e.preventDefault();go(cur-1);}
+  });
+  let sx=0;const vp=document.getElementById('vp');
+  vp.addEventListener('touchstart',e=>sx=e.touches[0].clientX,{passive:true});
+  vp.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-sx; if(Math.abs(dx)>55){dx<0?go(cur+1):go(cur-1);}},{passive:true});
+}
+
+/* ===== BOOT — פתיחה בצד-הקצב כברירת-מחדל (ניתן לשנות ב-CFG / ?role=) ===== */
+(function boot(){
+  const p=new URLSearchParams(location.search);
+  let start = CFG.startMode || 'merchant';
+  if(p.get('role')==='butcher') start='merchant';
+  if(p.get('role')==='customer') start='consumer';
+  if(start==='merchant'){ mode='merchant'; go(TAB_SCREEN.orders,{root:true}); }
+  else { mode='consumer'; go(TAB_SCREEN.home,{root:true}); }
+})();
+</script>
+</body>
+</html>
